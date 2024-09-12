@@ -1,0 +1,57 @@
+/* 表スタイル */
+.character-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 20px;
+}
+
+.character-table th,
+.character-table td {
+    border: 1px solid #ddd;
+    padding: 8px;
+    text-align: center;
+}
+
+.character-table th {
+    background-color: #f4f4f4;
+    font-weight: bold;
+}
+
+/* 技能の横並びスタイル */
+.toggle-skills {
+    display: none; /* 最初は非表示 */
+    white-space: normal; /* 自然な改行を許可 */
+    word-wrap: break-word;
+}
+
+.skill-item {
+    display: inline-block; /* 横並びにする */
+    margin-right: 10px; /* 各技能の間隔を設定 */
+    background-color: #f9f9f9; /* 背景色で見やすく */
+    padding: 5px 10px; /* 各技能のパディングを追加 */
+    border-radius: 4px; /* 角を丸く */
+    border: 1px solid #ddd; /* 境界線 */
+    white-space: nowrap; /* 技能名と値が1行に収まる */
+}
+
+.skill-item:last-child {
+    margin-right: 0; /* 最後の技能には右の余白をなくす */
+}
+
+/* クリックされた技能に適用する色（青） */
+.skill-item.active {
+    background-color: blue;
+    color: white;
+}
+
+/* 同じ技能を持つ他のキャラクターに適用する色（黄色） */
+.skill-item.highlight {
+    background-color: yellow;
+    color: black;
+}
+
+.skill-item.active {
+    background-color: #007bff; /* 青色に変更 */
+    color: white;
+    border: 1px solid #0056b3;
+}
