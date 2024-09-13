@@ -3,13 +3,6 @@
 @section('content')
 <h1>{{ request()->is('characters/self') ? '自分のキャラクター' : '友達のキャラクター' }}</h1>
 
-<nav>
-    <a href="{{ route('characters.self') }}" class="btn btn-primary">自分のキャラクター</a>
-    <a href="{{ route('characters.friends') }}" class="btn btn-primary">友達のキャラクター</a> <!-- 修正済み -->
-    <a href="{{ route('characters.jin') }}" class="btn btn-primary">陣ごと</a>
-</nav>
-
-
 @include('components.character-registration')
 
 <hr>

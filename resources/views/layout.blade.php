@@ -43,7 +43,7 @@
 
     <!-- ナビゲーションバー -->
     <div class="navbar">
-        <a href="{{ route('characters.index') }}">自分のキャラクター</a>
+        <a href="{{ route('characters.self') }}">自分のキャラクター</a>
         <a href="{{ route('characters.friends') }}">友達のキャラクター</a>
         <a href="{{ route('characters.jin') }}">陣ごと</a>
     </div>
