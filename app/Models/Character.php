@@ -6,7 +6,9 @@ use Illuminate\Database\Eloquent\Model;
 
 class Character extends Model
 {
-    // 自動的にJSONとして保存・取得するフィールドを指定
+    protected $fillable = ['name', 'occupation', 'age', 'sex', 'skills', 'user_id', 'abilities'];
+
+    // app/Models/Character.php
     protected $casts = [
         'abilities' => 'array',
         'skills' => 'array',

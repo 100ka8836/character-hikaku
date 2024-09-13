@@ -1,5 +1,6 @@
+<!-- resources/views/components/character-registration.blade.php -->
 <div class="character-registration">
-    <h2>キャラシのURL↓</h2>
+    <h2>キャラシのURLを入力してください</h2>
 
     @if(session('status'))
         <div class="alert alert-success">
@@ -17,6 +18,10 @@
         @csrf
         <label for="url">URL:</label>
         <input type="url" name="url" id="url" required>
+
+        <!-- キャラクタータイプを指定する hidden フィールド -->
+        <input type="hidden" name="type" value="{{ $type }}">
+
         <button type="submit">登録する</button>
     </form>
 </div>
