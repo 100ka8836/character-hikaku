@@ -38,7 +38,6 @@ class CharacterController extends Controller
             // キャラクターが正常に登録された場合のみ成功メッセージを表示
             return redirect()->back()->with('status', 'キャラクターが正常に登録されました。');
         } catch (\Exception $e) {
-            // エラーログを記録し、ユーザーに一般的なメッセージを表示
             Log::error('エラー発生: ' . $e->getMessage());
             return redirect()->back()->with('error', 'データの取得に失敗しました。後ほど再試行してください。');
         }
@@ -47,21 +46,17 @@ class CharacterController extends Controller
     // キャラクター保管所からデータを取得
     private function fetchFromCharacterHokanjo($url)
     {
-        // 6版のURLを確認
         if (strpos($url, 'coc_pc_making.html') === false) {
             throw new \Exception('申し訳ありません。6版のみ対応しています。');
         }
 
-        // APIエンドポイントの作成（HTMLをJSに変換）
         $apiUrl = str_replace('.html', '.js', $url);
 
         try {
             $response = Http::timeout(5)->withOptions(['verify' => false])->get($apiUrl);
 
             if ($response->failed()) {
-                $status = $response->status();
-                $body = $response->body();
-                throw new \Exception("データの取得に失敗しました。ステータスコード: $status, 内容: $body");
+                throw new \Exception("データの取得に失敗しました。");
             }
 
             $characterData = $response->json();
@@ -74,12 +69,10 @@ class CharacterController extends Controller
     // Charaenoからデータを取得
     private function fetchFromCharaeno($url)
     {
-        // 7版のURLが含まれている場合はエラーを返す
         if (strpos($url, '7th') !== false) {
             throw new \Exception('6版のURLが必要です。');
         }
 
-        // Charaenoの6版エンドポイントを使用
         $id = basename($url);
         $apiUrl = "https://charaeno.com/api/v1/6th/{$id}/summary";
 
@@ -87,9 +80,7 @@ class CharacterController extends Controller
             $response = Http::timeout(5)->withOptions(['verify' => false])->get($apiUrl);
 
             if ($response->failed()) {
-                $status = $response->status();
-                $body = $response->body();
-                throw new \Exception("データの取得に失敗しました。ステータスコード: $status, 内容: $body");
+                throw new \Exception("データの取得に失敗しました。");
             }
 
             $characterData = $response->json();
@@ -109,14 +100,7 @@ class CharacterController extends Controller
         $character->occupation = $data['occupation'] ?? '職業不明';
         $character->birthplace = $data['birthplace'] ?? '出身不明';
         $character->degree = $data['degree'] ?? '学位不明';
-
-        // 年齢を数値として扱い、非数値の場合はデフォルト値を設定
-        if (isset($data['age']) && preg_match('/\d+/', $data['age'], $matches)) {
-            $character->age = $matches[0];  // 最初に見つかった数値を使用
-        } else {
-            $character->age = 0;  // デフォルト値
-        }
-
+        $character->age = $this->extractNumericValue($data['age'] ?? 0, 0);
         $character->sex = $data['sex'] ?? '性別不明';
 
         // 能力値をまとめて保存
@@ -136,55 +120,39 @@ class CharacterController extends Controller
             'san_max' => $this->extractNumericValue($data['attribute']['san']['max'] ?? 99, 99),
         ];
 
-        // 能力値をJSON形式で保存
         $character->abilities = json_encode($abilities);
 
-        // スキル情報が空の場合に対応
         $skills = $data['skills'] ?? [];
-        if (!is_array($skills)) {
-            $skills = []; // スキル情報が空なら空配列として扱う
-        }
         $character->skills = json_encode($skills);
 
-        // データベースに保存
         $character->save();
     }
 
-
     private function extractNumericValue($value, $default)
     {
-        // 数値が含まれていればその数値を返し、含まれていなければデフォルト値を返す
         if (is_numeric($value)) {
             return $value;
         } elseif (preg_match('/\d+/', $value, $matches)) {
-            return $matches[0];  // 最初に見つかった数値を返す
+            return $matches[0];
         }
-        return $default;  // デフォルト値
+        return $default;
     }
 
-    // キャラクター一覧を表示するメソッド
+    // キャラクター一覧を表示
     public function showCharacters()
     {
-        // データベースから全てのキャラクターを取得
         $characters = Character::all();
 
-        // 各キャラクターのabilitiesとskillsをデコード
+        // abilities と skills をデコード
         foreach ($characters as $character) {
-            $character->abilities = json_decode($character->abilities, true);
-
-            // スキルが空の場合は空配列を設定
-            $skills = json_decode($character->skills, true);
-            if (!is_array($skills)) {
-                $character->skills = [];
-            } else {
-                // スキルが正しく連想配列であることを確認
-                $character->skills = array_filter($skills, function ($skill) {
-                    return isset($skill['name']) && isset($skill['value']);
-                });
+            if (is_string($character->abilities)) {
+                $character->abilities = json_decode($character->abilities, true);
+            }
+            if (is_string($character->skills)) {
+                $character->skills = json_decode($character->skills, true);
             }
         }
 
-        // 一覧ページを表示し、キャラクターを渡す
         return view('character.index', compact('characters'));
     }
 
@@ -192,48 +160,13 @@ class CharacterController extends Controller
     // 編集ページを表示するメソッド
     public function editCharacter($id)
     {
-        // キャラクターをIDで取得
         $character = Character::findOrFail($id);
-
-        // キャラクターのabilitiesとskillsをデコードして編集ページに渡す
-        $character->abilities = json_decode($character->abilities, true);
-        $character->skills = json_decode($character->skills, true);
-
-        // スキルが空の場合は空配列を設定
-        if (!is_array($character->skills)) {
-            $character->skills = [];
-        }
-
-        // 編集ビューを表示し、キャラクター情報を渡す
         return view('character.edit', compact('character'));
     }
 
-    // 編集メソッド
+    // キャラクター更新メソッド
     public function updateCharacter(Request $request, $id)
     {
-        // バリデーションを追加
-        $request->validate([
-            'name' => 'required|string|max:255',
-            'occupation' => 'nullable|string|max:255',
-            'age' => 'nullable|numeric|min:0',
-            'sex' => 'nullable|string|max:10',
-            'birthplace' => 'nullable|string|max:255',
-            'degree' => 'nullable|string|max:255',
-            'abilities.str' => 'nullable|numeric|min:0',
-            'abilities.con' => 'nullable|numeric|min:0',
-            'abilities.pow' => 'nullable|numeric|min:0',
-            'abilities.dex' => 'nullable|numeric|min:0',
-            'abilities.app' => 'nullable|numeric|min:0',
-            'abilities.siz' => 'nullable|numeric|min:0',
-            'abilities.int' => 'nullable|numeric|min:0',
-            'abilities.edu' => 'nullable|numeric|min:0',
-            'abilities.hp' => 'nullable|numeric|min:0',
-            'abilities.mp' => 'nullable|numeric|min:0',
-            'abilities.db' => 'nullable|string|max:10',
-            'abilities.san_value' => 'nullable|numeric|min:0',
-            'abilities.san_max' => 'nullable|numeric|min:0',
-        ]);
-
         $character = Character::findOrFail($id);
 
         // 基本情報の更新
@@ -261,32 +194,98 @@ class CharacterController extends Controller
             'san_max' => $request->input('abilities.san_max', 99),
         ];
 
-        // JSON形式で能力値を保存
         $character->abilities = json_encode($abilities);
 
         // スキルの更新
         $skills = $request->input('skills', []);
-        if (!empty($skills) && is_array($skills)) {
-            // スキルデータが連想配列であることを確認
-            $validSkills = array_filter($skills, function ($skill) {
-                return isset($skill['name']) && isset($skill['value']);
-            });
-            $character->skills = json_encode($validSkills);
-        } else {
-            $character->skills = json_encode([]); // スキルが空の場合は空配列にする
-        }
+        $character->skills = json_encode($skills);
 
-        // キャラクターの保存
         $character->save();
 
         return redirect()->route('characters.index')->with('status', 'キャラクターが更新されました。');
     }
 
-    //削除メソッド
-    public function deleteCharacter($id)
+    // 削除機能
+    public function destroy($id)
     {
         $character = Character::findOrFail($id);
-        $character->delete(); // キャラクターを削除
-        return redirect()->route('characters.index')->with('status', 'キャラクターが削除されました。');
+        $character->delete();
+
+        return redirect()->route('characters.index')->with('success', 'キャラクターが削除されました');
+    }
+
+    // キャラクターをコピーする
+    public function copy($id)
+    {
+        $character = Character::findOrFail($id);
+        $newCharacter = $character->replicate();
+        $newCharacter->name = $newCharacter->name . ' - コピー';
+        $newCharacter->save();
+
+        return redirect()->route('characters.index')->with('success', 'キャラクターがコピーされました');
+    }
+
+    // 自分のキャラクターを表示
+    public function showSelfCharacters()
+    {
+        $characters = Character::where('type', 'self')->get();
+
+        // abilities と skills をデコード
+        foreach ($characters as $character) {
+            if (is_string($character->abilities)) {
+                $character->abilities = json_decode($character->abilities, true);
+            }
+            if (is_string($character->skills)) {
+                $character->skills = json_decode($character->skills, true);
+            }
+        }
+
+        return view('character.index', compact('characters'));
+    }
+
+    // 友達のキャラクターを表示
+    public function showFriendCharacters()
+    {
+        $characters = Character::where('type', 'friend')->get();
+
+        // abilities と skills をデコード
+        foreach ($characters as $character) {
+            if (is_string($character->abilities)) {
+                $character->abilities = json_decode($character->abilities, true);
+            }
+            if (is_string($character->skills)) {
+                $character->skills = json_decode($character->skills, true);
+            }
+        }
+
+        return view('character.index', compact('characters'));
+    }
+
+    // 陣ごとページを表示
+    public function showJinPage()
+    {
+        $selfCharacters = Character::where('type', 'self')->get();
+        $friendCharacters = Character::where('type', 'friend')->get();
+
+        // abilities と skills をデコード
+        foreach ($selfCharacters as $character) {
+            if (is_string($character->abilities)) {
+                $character->abilities = json_decode($character->abilities, true);
+            }
+            if (is_string($character->skills)) {
+                $character->skills = json_decode($character->skills, true);
+            }
+        }
+
+        foreach ($friendCharacters as $character) {
+            if (is_string($character->abilities)) {
+                $character->abilities = json_decode($character->abilities, true);
+            }
+            if (is_string($character->skills)) {
+                $character->skills = json_decode($character->skills, true);
+            }
+        }
+
+        return view('character.jin', compact('selfCharacters', 'friendCharacters'));
     }
 }

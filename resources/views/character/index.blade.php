@@ -1,7 +1,19 @@
 @extends('layout')
 
 @section('content')
-<h1>登録されたキャラクター一覧</h1>
+<h1>{{ request()->is('characters/self') ? '自分のキャラクター' : '友達のキャラクター' }}</h1>
+
+<nav>
+    <a href="{{ route('characters.self') }}" class="btn btn-primary">自分のキャラクター</a>
+    <a href="{{ route('characters.friends') }}" class="btn btn-primary">友達のキャラクター</a> <!-- 修正済み -->
+    <a href="{{ route('characters.jin') }}" class="btn btn-primary">陣ごと</a>
+</nav>
+
+
+@include('components.character-registration')
+
+<hr>
+
 
 <!-- 表示切替ボタン -->
 <button id="toggle-basic-button" class="toggle-button">基本情報</button>
@@ -34,6 +46,7 @@
                 <th class="toggle-abilities" onclick="sortTable(17)">現在SAN</th>
                 <th class="toggle-abilities" onclick="sortTable(18)">最大SAN</th>
                 <th class="toggle-skills" style="display:none;">技能</th>
+                <th>操作</th>
             </tr>
         </thead>
         <tbody>
@@ -70,6 +83,24 @@
                         @endif
                     </td>
 
+                    <!-- 編集、削除、コピー機能のボタン -->
+                    <td>
+                        <!-- 編集ボタン -->
+                        <a href="{{ route('characters.edit', $character->id) }}" class="btn btn-primary">編集</a>
+
+                        <!-- 削除ボタン -->
+                        <form action="{{ route('characters.destroy', $character->id) }}" method="POST" style="display:inline;">
+                            @csrf
+                            @method('DELETE')
+                            <button type="submit" class="btn btn-danger" onclick="return confirm('本当に削除しますか？')">削除</button>
+                        </form>
+
+                        <!-- コピー機能ボタン -->
+                        <form action="{{ route('characters.copy', $character->id) }}" method="POST" style="display:inline;">
+                            @csrf
+                            <button type="submit" class="btn btn-secondary">コピー</button>
+                        </form>
+                    </td>
                 </tr>
             @endforeach
         </tbody>
@@ -98,11 +129,9 @@
                             shouldSwitch = true;
                             break;
                         }
-                    } else if (dir === "desc") {
-                        if (x.innerHTML.toLowerCase() < y.innerHTML.toLowerCase()) {
-                            shouldSwitch = true;
-                            break;
-                        }
+                    } else if (x.innerHTML.toLowerCase() < y.innerHTML.toLowerCase()) {
+                        shouldSwitch = true;
+                        break;
                     }
                 }
                 if (shouldSwitch) {
@@ -146,7 +175,7 @@
             rows.forEach(row => table.tBodies[0].appendChild(row)); // 並べ替えた行を再挿入
         }
 
-        // 表示切り替えボタンの機能
+        // 表示切替ボタンの機能
         document.addEventListener('DOMContentLoaded', function () {
             // 基本情報の表示/非表示を切り替える
             document.getElementById('toggle-basic-button').addEventListener('click', function () {

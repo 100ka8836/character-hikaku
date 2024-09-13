@@ -2,12 +2,13 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class Character extends Model
 {
-    use HasFactory;
-
-    protected $fillable = ['name', 'occupation', 'age', 'sex', 'skills'];
+    // 自動的にJSONとして保存・取得するフィールドを指定
+    protected $casts = [
+        'abilities' => 'array',
+        'skills' => 'array',
+    ];
 }
